@@ -1,0 +1,4 @@
+supabase
+pandas
+scikit-learn
+numpy<2
