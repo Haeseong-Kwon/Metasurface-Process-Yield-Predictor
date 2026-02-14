@@ -20,3 +20,14 @@ export interface YieldResult {
 export type ProcessWithYield = ProcessRun & {
   yield_results?: YieldResult[];
 };
+
+export interface YieldPrediction {
+  id?: string;
+  e_beam_dose: number;
+  etching_time: number;
+  gas_flow: number;
+  pressure: number;
+  predicted_yield: number;
+  risk_factors: string[];
+  created_at?: string;
+}
