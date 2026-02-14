@@ -14,20 +14,30 @@ import joblib # For saving/loading the model and preprocessor if needed
 
 # 1. Supabase Configuration
 SUPABASE_URL = "https://hpamcuncbbdrlyvupssl.supabase.co"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwYW1jdW5jYmJkcmx5dnVwc3NsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImiWFCI6MTc3MDk4MDA0MSwiZXhwIjoyMDg2NTYwMDQxfQ.tzVhOq4NfKXraSIuFXn26wAxEFLFkRtU1tU5NP4qWE8" # CORRECTED KEY
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwYW1jdW5jYmJkcmx5dnVwc3NsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDk4MDA0MSwiZXhwIjoyMDg2NTYwMDQxfQ.tzVhOq4NfKXraSIuFXn26wAxEFLFkRtU1tU5NP4qWE8" # CORRECTED KEY
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+# Define default recipe parameters for data integrity audit and handling
+DEFAULT_RECIPE_PARAMS = {
+    "temperature": 200.0,
+    "pressure": 10.0,
+    "duration": 60,
+    "catalyst_type": "UNKNOWN", # Use a specific UNKNOWN category
+    "equipment_id": "UNKNOWN" # Use a specific UNKNOWN category
+}
 
 # --- Helper Functions (reused from process_analyzer.py) ---
 def fetch_data(table_name: str):
     """Fetches all data from a specified Supabase table with enhanced error reporting."""
-    print(f"Attempting to fetch data from table: {table_name}")
+    # print(f"Attempting to fetch data from table: {table_name}") # Suppress verbose output
     try:
         response = supabase.from_(table_name).select("*").execute()
-        print(f"Supabase response for {table_name}: {response}")
+        # print(f"Supabase response for {table_name}: {response}") # Suppress verbose output
         if response and hasattr(response, 'data'):
             if not response.data:
-                print(f"No data returned for table: {table_name}")
+                # print(f"No data returned for table: {table_name}") # Keep only for critical errors
+                pass
             return response.data
         else:
             print(f"Unexpected response structure for {table_name}: {response}")
@@ -36,8 +46,8 @@ def fetch_data(table_name: str):
         print(f"Error fetching data from {table_name}: {e}")
         return None
 
-def generate_synthetic_data(num_samples=100):
-    """Generates synthetic process_runs and yield_results data."""
+def generate_synthetic_data(num_samples=200):
+    """Generates synthetic process_runs and yield_results data for golden recipe analysis."""
     synthetic_process_runs = []
     synthetic_yield_results = []
 
@@ -45,13 +55,21 @@ def generate_synthetic_data(num_samples=100):
         run_id = str(uuid.uuid4())
         created_at = pd.Timestamp.now() - pd.Timedelta(days=random.randint(1, 365))
 
-        # Generate recipe_params
+        # Generate recipe_params, some values clustered around a "golden" range
+        # Golden range for demonstration: temp around 210-230, pressure around 11-13, duration around 60-70
         temperature = round(random.uniform(150, 250), 2)
         pressure = round(random.uniform(5, 15), 2)
         duration = random.randint(30, 120)
         catalyst_type = random.choice(['A', 'B', 'C'])
         equipment_id = random.choice(['EQ001', 'EQ002', 'EQ003'])
         
+        # Introduce some "golden" runs
+        if random.random() < 0.3: # 30% chance to be a "golden" run
+            temperature = round(random.uniform(210, 230), 2)
+            pressure = round(random.uniform(11, 13), 2)
+            duration = random.randint(60, 70)
+            catalyst_type = 'A' # 'A' is best catalyst for golden runs
+
         recipe_params = {
             "temperature": temperature,
             "pressure": pressure,
@@ -59,6 +77,12 @@ def generate_synthetic_data(num_samples=100):
             "catalyst_type": catalyst_type,
             "equipment_id": equipment_id
         }
+        
+        # Introduce some missing parameters for testing data integrity
+        if random.random() < 0.05: # 5% chance to miss temperature
+            del recipe_params["temperature"]
+        if random.random() < 0.05: # 5% chance to miss catalyst_type
+            del recipe_params["catalyst_type"]
 
         synthetic_process_runs.append({
             "id": run_id,
@@ -67,14 +91,26 @@ def generate_synthetic_data(num_samples=100):
         })
 
         # Generate yield_results
-        # Make efficiency somewhat dependent on params for demonstration
-        # Adjusted formula to create clearer correlation for modeling
-        efficiency = round(
-            max(0, min(100, 
-                60 + (temperature - 200)/5 + (pressure - 10)*3 - (duration - 75)/3 
-                + (5 * (1 if catalyst_type == 'A' else (2 if catalyst_type == 'B' else 3)))
-                + (random.uniform(-5, 5)) # Add some noise
-            )), 2)
+        # Make efficiency dependent on parameters, especially favoring the "golden" range
+        # Use default values for missing params when calculating efficiency
+        eff_temp = recipe_params.get("temperature", DEFAULT_RECIPE_PARAMS["temperature"])
+        eff_pressure = recipe_params.get("pressure", DEFAULT_RECIPE_PARAMS["pressure"])
+        eff_duration = recipe_params.get("duration", DEFAULT_RECIPE_PARAMS["duration"])
+        eff_catalyst = recipe_params.get("catalyst_type", DEFAULT_RECIPE_PARAMS["catalyst_type"])
+
+
+        base_efficiency = 70 + (eff_temp - 200)/5 + (eff_pressure - 10)*3 - (eff_duration - 75)/3 
+        if eff_catalyst == 'A':
+            base_efficiency += 10 # Catalyst A is better
+        elif eff_catalyst == 'B':
+            base_efficiency += 5
+        
+        # Add a bonus for being in the golden range
+        if (210 <= eff_temp <= 230) and (11 <= eff_pressure <= 13) and \
+           (60 <= eff_duration <= 70) and (eff_catalyst == 'A'):
+            base_efficiency += random.uniform(5, 15) # High bonus for golden runs
+
+        efficiency = round(max(0, min(100, base_efficiency + random.uniform(-5, 5))), 2)
 
         synthetic_yield_results.append({
             "yield_result_id": str(uuid.uuid4()),
@@ -103,8 +139,23 @@ def prepare_data_for_model(df_runs: pd.DataFrame, df_yield: pd.DataFrame, is_inf
     """
     # Ensure 'id' in df_runs is the same type as 'process_run_id' in df_yield
     df_runs['id'] = df_runs['id'].astype(str)
+    
     if not is_inference: # For training, df_yield has process_run_id
         df_yield['process_run_id'] = df_yield['process_run_id'].astype(str)
+        
+        # --- Data Integrity Audit: Check for mismatches before merging ---
+        runs_with_yield = set(df_yield['process_run_id'].unique())
+        yields_with_run = set(df_runs['id'].unique())
+        
+        missing_yield_for_run = list(yields_with_run - runs_with_yield)
+        missing_run_for_yield = list(runs_with_yield - yields_with_run)
+
+        if missing_yield_for_run:
+            print(f"Warning: {len(missing_yield_for_run)} process runs have no matching yield results. Example IDs: {missing_yield_for_run[:5]}")
+        if missing_run_for_yield:
+            print(f"Warning: {len(missing_run_for_yield)} yield results have no matching process runs. Example IDs: {missing_run_for_yield[:5]}")
+
+        # Merge dataframes
         df_merged = pd.merge(df_runs, df_yield, left_on="id", right_on="process_run_id", how="inner")
     else: # For inference, df_runs is a single recipe, no merging needed with df_yield
         df_merged = df_runs.copy()
@@ -113,21 +164,30 @@ def prepare_data_for_model(df_runs: pd.DataFrame, df_yield: pd.DataFrame, is_inf
     if df_merged.empty:
         raise ValueError("Merged DataFrame is empty. Cannot prepare data for model.")
 
+    # --- Data Integrity Audit & Handling: Fill missing recipe_params with defaults ---
+    # Ensure recipe_params is a column of dicts first for easy manipulation
+    if 'recipe_params' in df_merged.columns:
+        # Convert JSON strings to dicts if necessary
+        df_merged['recipe_params'] = df_merged['recipe_params'].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
+        
+        # Fill missing keys within each recipe_params dictionary with DEFAULT_RECIPE_PARAMS
+        def fill_missing_recipe_keys(params_dict):
+            if not isinstance(params_dict, dict): # Handle cases where it might not be a dict
+                return DEFAULT_RECIPE_PARAMS.copy()
+            filled_params = DEFAULT_RECIPE_PARAMS.copy()
+            filled_params.update(params_dict)
+            return filled_params
+
+        df_merged['recipe_params'] = df_merged['recipe_params'].apply(fill_missing_recipe_keys)
+    else:
+        # If 'recipe_params' column itself is missing, create it with defaults
+        df_merged['recipe_params'] = [DEFAULT_RECIPE_PARAMS.copy() for _ in range(len(df_merged))]
+
+
     # Flatten recipe_params
     if 'recipe_params' in df_merged.columns and not df_merged['recipe_params'].empty:
-        first_rp = df_merged['recipe_params'].dropna().iloc[0] if not df_merged['recipe_params'].dropna().empty else None
-        
-        if isinstance(first_rp, dict):
-            recipe_params_flat = pd.json_normalize(df_merged['recipe_params'])
-        elif isinstance(first_rp, str):
-            try:
-                recipe_params_flat = pd.json_normalize(df_merged['recipe_params'].apply(json.loads))
-            except json.JSONDecodeError:
-                print("recipe_params column contains strings but they are not valid JSON. Skipping flattening.")
-                recipe_params_flat = pd.DataFrame()
-        else:
-            print("recipe_params column is not in dictionary or string JSON format. Skipping flattening.")
-            recipe_params_flat = pd.DataFrame()
+        # After filling missing keys, all recipe_params are guaranteed to be dicts with consistent keys
+        recipe_params_flat = pd.json_normalize(df_merged['recipe_params'])
 
         if not recipe_params_flat.empty:
             original_cols = set(df_merged.columns)
@@ -142,7 +202,9 @@ def prepare_data_for_model(df_runs: pd.DataFrame, df_yield: pd.DataFrame, is_inf
         else:
             df_merged = df_merged.drop('recipe_params', axis=1, errors='ignore')
     else:
-        print("No 'recipe_params' column found or it is empty.")
+        # This case should be less likely now due to filling missing 'recipe_params' column
+        pass
+
 
     # Convert efficiency to numeric for target, drop NaNs if training
     if not is_inference:
@@ -157,7 +219,7 @@ def prepare_data_for_model(df_runs: pd.DataFrame, df_yield: pd.DataFrame, is_inf
     
     # Drop excluded columns from df_merged to form df_features
     df_features = df_merged.drop(columns=[col for col in exclude_cols if col in df_merged.columns], errors='ignore')
-    
+
     # Separate numerical and categorical columns for preprocessing
     numerical_cols = df_features.select_dtypes(include=np.number).columns.tolist()
     categorical_cols = df_features.select_dtypes(include=['object', 'category']).columns.tolist() # Exclude 'bool' from here
@@ -179,32 +241,16 @@ def prepare_data_for_model(df_runs: pd.DataFrame, df_yield: pd.DataFrame, is_inf
         if preprocessor is None:
             raise ValueError("Preprocessor (fitted OneHotEncoder) must be provided for inference.")
         
-        # Create a DataFrame with all possible categorical features, filled with 0s
-        # Then fill in the actual values from df_features
-        # This helps ensure consistency when new categorical values appear in inference
-        # or when certain categories are missing.
-        inference_categorical_data = pd.DataFrame(0, index=df_features.index, columns=preprocessor.get_feature_names_out(categorical_cols))
-        for col in categorical_cols:
-            if col in df_features.columns:
-                unique_vals = df_features[col].unique()
-                for val in unique_vals:
-                    ohe_col_name = f"{col}_{val}"
-                    if ohe_col_name in inference_categorical_data.columns:
-                        inference_categorical_data.loc[df_features[col] == val, ohe_col_name] = 1
-
-        # Use the preprocessor to transform only the relevant categorical columns
-        # This part needs careful handling if the input df_features for inference is very sparse.
-        # A more robust approach often involves a Pipeline. For simple OHE, we ensure input
-        # columns match or are prepared to match training data's categorical columns.
-
         # Create a temporary DataFrame for OHE transformation with same columns as training's categorical input
         temp_categorical_df = pd.DataFrame(columns=preprocessor.feature_names_in_)
         for col in preprocessor.feature_names_in_:
             if col in df_features.columns:
                 temp_categorical_df[col] = df_features[col]
             else:
-                temp_categorical_df[col] = '' # Fill missing categorical columns with empty string or a default value
-        
+                # Fill missing categorical columns with a value that OHE can handle (e.g., empty string or 'UNKNOWN')
+                # Make sure 'UNKNOWN' is handled by the preprocessor's handle_unknown='ignore'
+                temp_categorical_df[col] = DEFAULT_RECIPE_PARAMS.get(col.replace('rp_',''), 'UNKNOWN') # If it was a flattened param, use default for original
+
         # Transform the prepared categorical data
         encoded_features = preprocessor.transform(temp_categorical_df)
         encoded_feature_names = preprocessor.get_feature_names_out(preprocessor.feature_names_in_) # Use feature_names_in_ to get consistent output names
@@ -216,7 +262,16 @@ def prepare_data_for_model(df_runs: pd.DataFrame, df_yield: pd.DataFrame, is_inf
     # Ensure all feature columns are numeric, coerce errors, fill NaNs
     for col in X.columns:
         X.loc[:, col] = pd.to_numeric(X[col], errors='coerce')
-    X = X.fillna(X.mean()) # Impute remaining NaNs with column mean
+    
+    # Fill remaining NaNs for numerical features with their default value, not mean
+    # This is more robust for inference where a mean might not be available
+    for col in X.columns:
+        original_col_name = col.replace('rp_','') # If it was a flattened param
+        if original_col_name in DEFAULT_RECIPE_PARAMS and isinstance(DEFAULT_RECIPE_PARAMS[original_col_name], (int, float)):
+            X.loc[:, col] = X[col].fillna(DEFAULT_RECIPE_PARAMS[original_col_name])
+        else: # Fallback to mean if no specific default or not in default_recipe_params
+            X.loc[:, col] = X[col].fillna(X[col].mean())
+
 
     # Align columns between training and inference data (critical for OHE consistency)
     if is_inference and training_cols is not None:
@@ -237,7 +292,7 @@ def train_prediction_model(X: pd.DataFrame, y: pd.Series):
     if X.empty or y.empty:
         raise ValueError("No data to train the model.")
 
-    print(f"Training model with {len(X)} samples and {len(X.columns)} features.")
+    # print(f"Training model with {len(X)} samples and {len(X.columns)} features.") # Suppress verbose output
 
     # Split data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -250,7 +305,7 @@ def train_prediction_model(X: pd.DataFrame, y: pd.Series):
     y_pred = model.predict(X_test)
     mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
-    print(f"Model trained. MAE: {mae:.2f}, R2: {r2:.2f}")
+    # print(f"Model trained. MAE: {mae:.2f}, R2: {r2:.2f}") # Suppress verbose output
 
     # Feature Importance
     feature_importances = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
@@ -310,8 +365,8 @@ def record_prediction(process_run_id: str, predicted_yield: float, confidence_sc
         "confidence_score": confidence_score
     }
     
-    print("\n--- Simulating data recording to 'yield_predictions' ---")
-    print(json.dumps(prediction_data, indent=4))
+    # print("\n--- Simulating data recording to 'yield_predictions' ---") # Suppress verbose output
+    # print(json.dumps(prediction_data, indent=4)) # Suppress verbose output
     
     # In a real application, you would do:
     # try:
@@ -381,6 +436,7 @@ if __name__ == "__main__":
         print(f"Confidence Score: {confidence:.2f}")
 
         # 4. Data Sync Demonstration (simulated)
+        # print(f"Simulating recording prediction for virtual_run_id_123: Predicted Yield={predicted_yield:.2f}, Confidence={confidence:.2f}") # Suppress verbose output
         record_prediction("virtual_run_id_123", predicted_yield, confidence)
 
     except Exception as e:

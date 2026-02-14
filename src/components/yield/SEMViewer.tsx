@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Title, Text, Card, Grid, Col, Flex, Metric, Badge, DonutChart } from '@tremor/react';
+import { Title, Text, Card, Flex, Badge, DonutChart } from '@tremor/react';
 import { Defect } from '@/types/yield';
 import { Maximize2, Target } from 'lucide-react';
 
@@ -121,7 +121,7 @@ export default function SEMViewer({ imageUrl, defects }: Props) {
 }
 
 // Helper button inside the same file for brevity in this specific implementation
-function IconButton({ icon: Icon, className, onClick }: { icon: any, className?: string, onClick?: () => void }) {
+function IconButton({ icon: Icon, className, onClick }: { icon: React.ElementType, className?: string, onClick?: () => void }) {
     return (
         <button onClick={onClick} className={`p-2 rounded-md transition-all ${className}`}>
             <Icon className="w-4 h-4" />

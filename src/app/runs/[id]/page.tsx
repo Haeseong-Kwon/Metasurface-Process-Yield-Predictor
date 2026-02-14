@@ -1,12 +1,15 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { Title, Text, Card, Grid, Col, Flex, Metric, Badge } from '@tremor/react';
+import { Title, Text, Card, Grid, Col, Flex, Metric, Badge, Button } from '@tremor/react';
 import SEMViewer from '@/components/yield/SEMViewer';
 import OptimizationCard from '@/components/yield/OptimizationCard';
 import { ProcessWithYield, Defect, OptimizationAdvice } from '@/types/yield';
-import { ChevronLeft, Info, Calendar, Database, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
+import { FileText, Download, ChevronLeft, Calendar, Database, ShieldAlert, Info } from 'lucide-react';
+import { generateProfessionalRunReport } from '@/lib/generateRunReport';
+import { useState, useEffect } from 'react';
+import { AnalyticsSkeleton } from '@/components/ui/SkeletonLoader';
 
 // Mock generator for a single run detail
 const getRunDetail = (id: string): ProcessWithYield => ({
@@ -42,32 +45,64 @@ const getRunDetail = (id: string): ProcessWithYield => ({
 export default function RunDetailPage() {
     const params = useParams();
     const id = params.id as string;
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // Simulate industrial data loading precision
+        const timer = setTimeout(() => setLoading(false), 1200);
+        return () => clearTimeout(timer);
+    }, []);
+
     const run = getRunDetail(id);
 
+    if (loading) {
+        return (
+            <main className="p-6 bg-slate-950 min-h-screen">
+                <AnalyticsSkeleton />
+            </main>
+        );
+    }
+
     return (
-        <main className="p-6 bg-slate-950 min-h-screen space-y-8">
+        <main className="p-6 bg-slate-950 min-h-screen space-y-8 selection:bg-blue-500/30">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center space-x-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-900 pb-8">
+                <div className="flex items-center space-x-6">
                     <Link href="/dashboard">
-                        <button className="p-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-400 hover:text-white transition-all">
+                        <button className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:border-slate-700 transition-all">
                             <ChevronLeft className="w-5 h-5" />
                         </button>
                     </Link>
                     <div>
                         <Flex className="space-x-3">
-                            <Title className="text-3xl font-extrabold text-white tracking-tight">Process Metrology: {run.recipe_name}</Title>
-                            <Badge color="blue" icon={Database}>Batch ID: {id}</Badge>
+                            <Title className="text-3xl font-black text-white tracking-tight uppercase">Metrology Detail: {run.recipe_name}</Title>
+                            <Badge color="blue" icon={Database} className="bg-blue-500/10 text-blue-400 border-blue-500/20">Batch ID: {id}</Badge>
                         </Flex>
-                        <Flex className="mt-1 space-x-4">
-                            <div className="flex items-center text-slate-500 text-xs">
-                                <Calendar className="w-3 h-3 mr-1" /> {new Date(run.created_at).toLocaleDateString()}
+                        <Flex className="mt-1.5 space-x-5">
+                            <div className="flex items-center text-slate-500 text-xs font-bold tracking-widest uppercase">
+                                <Calendar className="w-3.5 h-3.5 mr-1.5 text-slate-600" /> {new Date(run.created_at).toLocaleDateString()}
                             </div>
-                            <div className="flex items-center text-slate-500 text-xs">
-                                <ShieldAlert className="w-3 h-3 mr-1" /> Final Yield: <span className="text-emerald-400 font-bold ml-1">{run.yield_results?.[0]?.yield_rate}%</span>
+                            <div className="flex items-center text-slate-500 text-xs font-bold tracking-widest uppercase">
+                                <ShieldAlert className="w-3.5 h-3.5 mr-1.5 text-slate-600" /> Final Yield: <span className="text-emerald-400 ml-1.5">{run.yield_results?.[0]?.yield_rate}%</span>
                             </div>
                         </Flex>
                     </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                    <Button
+                        className="bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 font-bold"
+                        icon={FileText}
+                    >
+                        Raw Data Logs
+                    </Button>
+                    <Button
+                        className="bg-blue-600 hover:bg-blue-500 border-none shadow-lg shadow-blue-500/10 font-bold"
+                        icon={Download}
+                        onClick={() => generateProfessionalRunReport(run)}
+                    >
+                        Download Technical Report
+                    </Button>
                 </div>
             </div>
 

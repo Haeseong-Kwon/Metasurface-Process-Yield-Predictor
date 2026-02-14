@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Grid, Card, Metric, Text, Flex, BadgeDelta, Title } from '@tremor/react';
-import { supabase } from '@/lib/supabase';
-import { ProcessWithYield } from '@/types/yield';
-import ProcessAnalytics from '@/components/dashboard/ProcessAnalytics';
+import { Card, Title, Text, Grid, Flex, Metric, Badge, Button, BadgeDelta } from '@tremor/react';
+import { PlusCircle, Database, TrendingUp, Activity, AlertTriangle, Download, FileJson, Zap, Layers } from 'lucide-react';
 import RecipeForm from '@/components/dashboard/RecipeForm';
-import { Activity, Layers, Zap, AlertTriangle } from 'lucide-react';
+import ProcessAnalytics from '@/components/dashboard/ProcessAnalytics';
+import { supabase } from '@/lib/supabase';
+import { ProcessRun, YieldResult, ProcessWithYield } from '@/types/yield';
+import Link from 'next/link';
+import { exportProcessHistoryCSV } from '@/lib/exportData';
 
 // Mock data generator for initial state if DB is empty
 const getMockData = (): ProcessWithYield[] => {
@@ -79,29 +81,47 @@ export default function DashboardPage() {
     );
 
     return (
-        <main className="p-6 bg-slate-950 min-h-screen space-y-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <main className="p-6 bg-slate-950 min-h-screen space-y-8 selection:bg-blue-500/30">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-900">
                 <div>
-                    <Title className="text-3xl font-extrabold text-white tracking-tight">Yield Predictor</Title>
-                    <Text className="text-slate-400">Fab Monitoring & Nanoprocess Intelligence Dashboard</Text>
+                    <Title className="text-3xl font-black text-white tracking-tighter uppercase">Fab Intelligence OS</Title>
+                    <Text className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Metasurface Process Control & Yield Optimization</Text>
                 </div>
-                <div className="flex space-x-2">
-                    <BadgeDelta deltaType="moderateIncrease" className="px-3">Performance Critical</BadgeDelta>
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse self-center"></div>
-                    <span className="text-xs text-slate-500 self-center uppercase tracking-widest">Live Monitoring</span>
+                <div className="flex items-center space-x-3">
+                    <Button
+                        className="bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 font-bold uppercase tracking-wider text-xs"
+                        icon={Download}
+                        onClick={() => exportProcessHistoryCSV(data)}
+                    >
+                        Export History
+                    </Button>
+                    <Link href="/simulator">
+                        <Button
+                            className="bg-blue-600 hover:bg-blue-500 border-none shadow-lg shadow-blue-500/10 font-bold uppercase tracking-wider text-xs"
+                            icon={Activity}
+                        >
+                            Open Virtual Fab
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
-            <Grid numItems={1} numItemsSm={2} numItemsLg={4} className="gap-6 mt-6">
+            <Grid numItems={1} numItemsSm={2} numItemsLg={4} className="gap-6">
                 {stats.map((item) => (
                     <Card key={item.title} className="bg-slate-900/50 border-slate-800 backdrop-blur-sm hover:border-slate-700 transition-all cursor-default group">
                         <Flex alignItems="start">
                             <div>
-                                <Text className="text-slate-400 font-medium">{item.title}</Text>
+                                <Text className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">{item.title}</Text>
                                 <Metric className="text-white mt-1 group-hover:text-blue-400 transition-colors">{item.metric}</Metric>
                             </div>
                             <item.icon className={`w-6 h-6 text-${item.color}-500 opacity-80 group-hover:scale-110 transition-transform`} />
                         </Flex>
+                        <div className="mt-4 flex items-center space-x-2">
+                            <BadgeDelta deltaType={item.delta.startsWith('+') ? 'moderateIncrease' : 'moderateDecrease'} className="scale-75 origin-left">
+                                {item.delta}
+                            </BadgeDelta>
+                            <Text className="text-[10px] text-slate-600 font-bold uppercase">vs. Last Shift</Text>
+                        </div>
                     </Card>
                 ))}
             </Grid>
@@ -115,7 +135,7 @@ export default function DashboardPage() {
                     <RecipeForm />
                 </div>
                 <Card className="lg:col-span-2 bg-slate-900/50 border-slate-800 backdrop-blur-sm overflow-hidden">
-                    <Title className="text-slate-100 mb-4">Recent Process Logs</Title>
+                    <Title className="text-slate-100 mb-6 p-6 pb-0 tracking-tight">Recent Process Logs</Title>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className="border-b border-slate-800">

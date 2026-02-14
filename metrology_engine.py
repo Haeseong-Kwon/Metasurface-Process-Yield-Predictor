@@ -16,16 +16,26 @@ SUPABASE_URL = "https://hpamcuncbbdrlyvupssl.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwYW1jdW5jYmJkcmx5dnVwc3NsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDk4MDA0MSwiZXhwIjoyMDg2NTYwMDQxfQ.tzVhOq4NfKXraSIuFXn26wAxEFLFkRtU1tU5NP4qWE8"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
+# Define default recipe parameters for data integrity audit and handling
+DEFAULT_RECIPE_PARAMS = {
+    "temperature": 200.0,
+    "pressure": 10.0,
+    "duration": 60,
+    "catalyst_type": "UNKNOWN", # Use a specific UNKNOWN category
+    "equipment_id": "UNKNOWN" # Use a specific UNKNOWN category
+}
+
 # --- Helper Functions (reused) ---
 def fetch_data(table_name: str):
     """Fetches all data from a specified Supabase table with enhanced error reporting."""
-    print(f"Attempting to fetch data from table: {table_name}")
+    # print(f"Attempting to fetch data from table: {table_name}") # Suppress verbose output
     try:
         response = supabase.from_(table_name).select("*").execute()
         # print(f"Supabase response for {table_name}: {response}") # Suppress verbose output
         if response and hasattr(response, 'data'):
             if not response.data:
-                print(f"No data returned for table: {table_name}")
+                # print(f"No data returned for table: {table_name}") # Keep only for critical errors
+                pass
             return response.data
         else:
             print(f"Unexpected response structure for {table_name}: {response}")
@@ -147,26 +157,30 @@ def recommend_recipe_changes(defects: dict, current_recipe_params: dict,
     # Deep copy current params to modify
     proposed_recipe_params = current_recipe_params.copy()
 
+    # Apply default values to current_recipe_params before using for prediction, for integrity
+    current_recipe_params_filled = DEFAULT_RECIPE_PARAMS.copy()
+    current_recipe_params_filled.update(current_recipe_params)
+
     # Simple rule-based recommendations for demonstration
     if defects.get("Bridge", 0) > 0:
         # If bridging, suggest lowering temperature and increasing pressure slightly
         recommendations["temperature"] = -5.0 # Decrease by 5 units
         recommendations["pressure"] = 0.5 # Increase by 0.5 units
-        proposed_recipe_params["temperature"] = max(150.0, proposed_recipe_params.get("temperature", 200) + recommendations["temperature"])
-        proposed_recipe_params["pressure"] = min(15.0, proposed_recipe_params.get("pressure", 10) + recommendations["pressure"])
+        proposed_recipe_params["temperature"] = max(150.0, current_recipe_params_filled.get("temperature", DEFAULT_RECIPE_PARAMS["temperature"]) + recommendations["temperature"])
+        proposed_recipe_params["pressure"] = min(15.0, current_recipe_params_filled.get("pressure", DEFAULT_RECIPE_PARAMS["pressure"]) + recommendations["pressure"])
         
     if defects.get("Missing", 0) > 0:
         # If missing, suggest increasing duration or temperature
         recommendations["duration"] = 10 # Increase by 10 units
         recommendations["temperature"] = 2.0 # Increase by 2 units
-        proposed_recipe_params["duration"] = min(120, proposed_recipe_params.get("duration", 60) + recommendations["duration"])
-        proposed_recipe_params["temperature"] = min(250.0, proposed_recipe_params.get("temperature", 200) + recommendations["temperature"])
+        proposed_recipe_params["duration"] = min(120, current_recipe_params_filled.get("duration", DEFAULT_RECIPE_PARAMS["duration"]) + recommendations["duration"])
+        proposed_recipe_params["temperature"] = min(250.0, current_recipe_params_filled.get("temperature", DEFAULT_RECIPE_PARAMS["temperature"]) + recommendations["temperature"])
 
     if defects.get("Distortion", 0) > 0:
         # If distortion, suggest adjusting catalyst or pressure
         recommendations["catalyst_type"] = random.choice(['A', 'B', 'C']) # Try a different catalyst
         recommendations["pressure"] = -1.0 # Decrease by 1 unit
-        proposed_recipe_params["pressure"] = max(5.0, proposed_recipe_params.get("pressure", 10) + recommendations["pressure"])
+        proposed_recipe_params["pressure"] = max(5.0, current_recipe_params_filled.get("pressure", DEFAULT_RECIPE_PARAMS["pressure"]) + recommendations["pressure"])
 
     # Predict yield for proposed changes (if a model is provided)
     predicted_yield_current = None
@@ -175,12 +189,16 @@ def recommend_recipe_changes(defects: dict, current_recipe_params: dict,
         try:
             # Predict current yield
             predicted_yield_current, _ = predict_yield_for_recipe(
-                yield_model, current_recipe_params, ohe_preprocessor, training_features
+                yield_model, current_recipe_params_filled, ohe_preprocessor, training_features
             )
             
             # Predict proposed yield
+            # Apply default values to proposed_recipe_params before using for prediction
+            proposed_recipe_params_filled = DEFAULT_RECIPE_PARAMS.copy()
+            proposed_recipe_params_filled.update(proposed_recipe_params)
+
             predicted_yield_proposed, _ = predict_yield_for_recipe(
-                yield_model, proposed_recipe_params, ohe_preprocessor, training_features
+                yield_model, proposed_recipe_params_filled, ohe_preprocessor, training_features
             )
             
             recommendations["predicted_yield_current"] = round(predicted_yield_current, 2)
@@ -188,7 +206,7 @@ def recommend_recipe_changes(defects: dict, current_recipe_params: dict,
             recommendations["predicted_yield_improvement"] = round(predicted_yield_proposed - predicted_yield_current, 2)
             
         except Exception as e:
-            print(f"Error predicting yield for recommendations: {e}")
+            # print(f"Error predicting yield for recommendations: {e}") # Suppress verbose output
             recommendations["prediction_error"] = str(e)
             
     return recommendations
@@ -210,8 +228,8 @@ def record_sem_analysis(analysis_data: dict):
     """
     Simulates recording SEM analysis results to Supabase 'sem_analysis_results' table.
     """
-    print("\n--- Simulating data recording to 'sem_analysis_results' ---")
-    print(json.dumps(analysis_data, indent=4))
+    # print("\n--- Simulating data recording to 'sem_analysis_results' ---") # Suppress verbose output
+    # print(json.dumps(analysis_data, indent=4)) # Suppress verbose output
     
     # In a real application, you would do:
     # try:
@@ -229,7 +247,7 @@ def process_sem_image(args):
     image_path, model_components, recipe_params = args
     image_id = os.path.basename(image_path).replace("sem_image_", "").replace(".png", "")
 
-    print(f"Processing image: {image_path}")
+    # print(f"Processing image: {image_path}") # Suppress verbose output
 
     # 1. Defect Detection
     defects = detect_defects(image_path)
@@ -260,7 +278,7 @@ def process_sem_image(args):
         "thumbnail_base64": thumbnail_base64 # Store thumbnail in Base64
     }
     
-    record_sem_analysis(analysis_data)
+    # record_sem_analysis(analysis_data) # This function also prints
     return analysis_data
 
 # --- Main Execution Block ---
@@ -305,7 +323,14 @@ if __name__ == "__main__":
             defect_type = random.choice(defect_types)
             image_id = f"{i}_{defect_type if defect_type else 'NoDefect'}"
             path = generate_placeholder_sem_image(image_id, defect_type=defect_type)
-            image_paths.append((path, example_recipe_params[i % len(example_recipe_params)]))
+            # Occasionally introduce missing recipe params in example_recipe_params for testing
+            current_recipe_p = example_recipe_params[i % len(example_recipe_params)].copy()
+            if random.random() < 0.1: # 10% chance to miss temperature
+                if "temperature" in current_recipe_p: del current_recipe_p["temperature"]
+            if random.random() < 0.1: # 10% chance to miss catalyst_type
+                if "catalyst_type" in current_recipe_p: del current_recipe_p["catalyst_type"]
+
+            image_paths.append((path, current_recipe_p))
         print(f"Generated {len(image_paths)} placeholder images.")
 
         # Prepare arguments for multiprocessing
@@ -322,7 +347,11 @@ if __name__ == "__main__":
             results = pool.map(process_sem_image, mp_args)
         
         print("\nAll SEM images processed.")
-        # You can now further process 'results' if needed
+        
+        # Now print results in the main process to avoid interleaved output from subprocesses
+        print("\n--- SEM Analysis Results ---")
+        for res in results:
+            print(json.dumps(res, indent=4))
 
     except Exception as e:
         print(f"An error occurred in main execution: {e}")
