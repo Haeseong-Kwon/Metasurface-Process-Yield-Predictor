@@ -17,8 +17,28 @@ export interface YieldResult {
   measured_at: string;
 }
 
+export interface Defect {
+  id: string;
+  type: 'Broken' | 'Bridge' | 'Short' | 'Particle';
+  x: number; // normalized 0-1
+  y: number; // normalized 0-1
+  width: number;
+  height: number;
+}
+
+export interface OptimizationAdvice {
+  id: string;
+  category: 'Etching' | 'Dose' | 'Flow' | 'Pressure';
+  suggestion: string;
+  impact_percent: number;
+  priority: 'High' | 'Medium' | 'Low';
+}
+
 export type ProcessWithYield = ProcessRun & {
   yield_results?: YieldResult[];
+  defects?: Defect[];
+  advice?: OptimizationAdvice[];
+  sem_image_url?: string;
 };
 
 export interface YieldPrediction {
