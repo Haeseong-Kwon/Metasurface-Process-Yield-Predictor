@@ -12,9 +12,9 @@
 
 본 시스템은 공정 레시피 파라미터(Process Recipe Parameters)와 실제 측정된 효율(Measured Efficiency) 사이의 상관관계를 다차원으로 분석한다. 수율 예측은 지도 학습(Supervised Learning) 기반의 회귀 모델을 활용하며, 수율의 정량적 산출 공식은 다음과 같이 정의된다.
 
-$$Yield (%) = \frac{N_{pass}}{N_{total}} \times 100$$
+$$\text{Yield } (\%) = \left( \frac{N_{\text{pass}}}{N_{\text{total}}} \right) \times 100$$
 
-여기서 $N_{pass}$는 기 설정된 효율 임계값(Efficiency Threshold)을 만족하는 유닛의 수이며, $N_{total}$은 전체 샘플 수를 의미한다. 
+여기서 $N_{\text{pass}}$는 기 설정된 효율 임계값(Efficiency Threshold)을 만족하는 유닛의 수이며, $N_{\text{total}}$은 전체 샘플 수를 의미한다. 
 
 예측 성능의 정밀도를 확보하기 위해 **Random Forest**와 **XGBoost(Extreme Gradient Boosting)** 앙상블 알고리즘을 적용하며, 가중치 최적화를 통해 결정 계수($R^2$) 및 평균 제곱근 오차(RMSE)를 최소화한다. 또한 **Feature Importance (SHAP Analysis)** 로직을 내장하여 수율 저하에 지배적인 영향을 미치는 핵심 인자(Critical Factors)를 식별하고, 이를 기반으로 공정 편차를 최소화하는 최적 레시피를 도출한다.
 
