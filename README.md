@@ -58,9 +58,9 @@ graph TD
 
 ## 🚀 Demo
 
-<p align="center">
-  ![Process Yield Predictor Demo](demo.gif)
-</p>
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Haeseong-Kwon/Metasurface-Process-Yield-Predictor/main/demo.gif" width="800" alt="Process Yield Predictor Demo">
+</div>
 
 ### 💡 Key Technical Features
 *   **Key Tech:** React/Next.js (Frontend), AI-based Yield Prediction Model.
