@@ -1,5 +1,15 @@
 # [Research Report] AI-based Metasurface Fabrication Yield Prediction and Defect Metrology System
 
+<p align="center">
+  <img src="demo.gif" width="800" alt="Process Yield Predictor Demo">
+</p>
+
+<p align="center">
+  <b>React/Next.js (Frontend) • AI-based Yield Prediction • Semiconductor Fab Intelligence</b>
+</p>
+
+---
+
 ## 1. Research Background: Challenges in Nano-fabrication
 
 초미세 나노 스케일의 메타표면(Metasurface) 제조 공정은 극도로 높은 정밀도를 요구하며, 미세한 공정 변수 변화가 최종 소자의 광학적 성능 및 수율(Yield)에 결정적인 영향을 미친다. 특히 **E-beam Lithography (EBL)** 및 **Etching Process** 과정에서 발생하는 **Dose, Pressure, Temperature, Gas Flow Rate** 등의 파라미터는 상호 복합적인 비선형 관계를 형성하며, 이는 설계치(Design Rule)와 실제 제작된 패턴 간의 치수 오차(Critical Dimension error)를 유발한다.
@@ -53,19 +63,6 @@ graph TD
 - **Backend Logic**: Python 3.10+ 환경에서 Scikit-learn, PyTorch, OpenCV 라이브러리를 통해 수율 예측 및 이미지 분석을 수행한다.
 - **Hardware Acceleration**: 대용량 공정 데이터셋 학습 및 고해상도 SEM 이미지 추론 시, Apple Silicon Mac의 **Metal Performance Shaders (MPS)** 가속을 활용하여 연산 속도를 최적화한다.
 - **Frontend Interface**: Node.js 18+ 기반의 Next.js 14 및 Tailwind CSS를 사용하여 반응형 및 저지연(Low-latency) 모니터링 환경을 제공한다.
-
----
-
-## 🚀 Demo
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/Haeseong-Kwon/Metasurface-Process-Yield-Predictor/main/demo.gif" width="800" alt="Process Yield Predictor Demo">
-</div>
-
-### 💡 Key Technical Features
-*   **Key Tech:** React/Next.js (Frontend), AI-based Yield Prediction Model.
-*   **Purpose:** 반도체/메타표면 공정 시뮬레이션을 통한 생산 수율 최적화 도구.
-*   **Real-time Analysis:** 공정 변수(Dose, Etching time 등) 변화에 따른 수율 변동을 즉각적으로 예측 및 시각화.
 
 ---
 
