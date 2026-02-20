@@ -18,6 +18,7 @@ export default function VirtualFab({ onSave, onExport }: Props) {
         gas_flow: 100, // sccm
         pressure: 50, // mTorr
     });
+    const [isPredicting, setIsPredicting] = useState(false);
 
     // Simulated AI Logic
     const prediction = useMemo(() => {
@@ -50,6 +51,11 @@ export default function VirtualFab({ onSave, onExport }: Props) {
             risk_factors: risks,
         };
     }, [params]);
+
+    const handlePredict = () => {
+        setIsPredicting(true);
+        setTimeout(() => setIsPredicting(false), 800);
+    };
 
     const currentPrediction: YieldPrediction = {
         ...params,
@@ -139,20 +145,29 @@ export default function VirtualFab({ onSave, onExport }: Props) {
                             onClick={() => onExport?.(currentPrediction)}
                             className="border-slate-700 text-slate-300 hover:bg-slate-800"
                         >
-                            Export Report
+                            Export
+                        </Button>
+                        <Button
+                            variant="primary"
+                            icon={Beaker}
+                            onClick={handlePredict}
+                            loading={isPredicting}
+                            className="bg-purple-600 hover:bg-purple-500 border-none text-white"
+                        >
+                            Predict Yield
                         </Button>
                         <Button
                             icon={Save}
                             onClick={() => onSave?.(currentPrediction)}
                             className="bg-blue-600 hover:bg-blue-500 border-none"
                         >
-                            Save Prediction
+                            Save
                         </Button>
                     </div>
                 </Card>
             </Col>
 
-            <div className="space-y-8">
+            <div className={`space-y-8 transition-opacity duration-300 ${isPredicting ? 'opacity-50' : 'opacity-100'}`}>
                 <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm">
                     <Title className="text-slate-100 mb-2">Yield Prediction</Title>
                     <div className="flex flex-col items-center py-6">
@@ -183,12 +198,16 @@ export default function VirtualFab({ onSave, onExport }: Props) {
                                 />
                             </svg>
                             <div className="absolute flex flex-col items-center">
-                                <span className="text-4xl font-bold font-mono text-white">{currentPrediction.predicted_yield.toFixed(1)}%</span>
-                                <span className="text-xs uppercase tracking-widest text-slate-500 font-bold">Estimated</span>
+                                <span className="text-4xl font-bold font-mono text-white">
+                                    {isPredicting ? '---' : currentPrediction.predicted_yield.toFixed(1)}%
+                                </span>
+                                <span className="text-xs uppercase tracking-widest text-slate-500 font-bold">
+                                    {isPredicting ? 'Calculating...' : 'Estimated'}
+                                </span>
                             </div>
                         </div>
                         <Text className="mt-4 text-slate-400 text-center">
-                            Predicted yield based on current configuration
+                            {isPredicting ? 'AI Model is processing parameters...' : 'Predicted yield based on current configuration'}
                         </Text>
                     </div>
                 </Card>

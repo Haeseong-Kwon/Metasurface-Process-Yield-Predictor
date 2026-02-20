@@ -56,5 +56,18 @@ graph TD
 
 ---
 
+## 🚀 Demo
+
+<p align="center">
+  <img src="docs/yield_predictor_demo.gif" width="800" alt="Process Yield Predictor Demo">
+</p>
+
+### 💡 Key Technical Features
+*   **Key Tech:** React/Next.js (Frontend), AI-based Yield Prediction Model.
+*   **Purpose:** 반도체/메타표면 공정 시뮬레이션을 통한 생산 수율 최적화 도구.
+*   **Real-time Analysis:** 공정 변수(Dose, Etching time 등) 변화에 따른 수율 변동을 즉각적으로 예측 및 시각화.
+
+---
+
 **Author: 권해성 (Hanyang University, Computer Science)**
 **Research Interest: Virtual Metrology, Nano-process Intelligence, Semiconductor Yield Analysis**
