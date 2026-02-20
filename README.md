@@ -59,7 +59,7 @@ graph TD
 ## 🚀 Demo
 
 <p align="center">
-  ![Process Yield Predictor Demo](./docs/yield_predictor_demo.gif)
+  ![Process Yield Predictor Demo](demo.gif)
 </p>
 
 ### 💡 Key Technical Features
