@@ -1,7 +1,7 @@
 # [Research Report] AI-based Metasurface Fabrication Yield Prediction and Defect Metrology System
 
 <p align="center">
-  <img src="demo.gif" width="800" alt="Process Yield Predictor Demo">
+  <img src="docs/yield_predictor_demo.gif" width="800" alt="Process Yield Predictor Demo">
 </p>
 
 <p align="center">
